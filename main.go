@@ -28,16 +28,13 @@ func main() {
 	userHandler := api.NewUserHandler(db.NewMongoUserStore(client))
 	app := fiber.New(config)
 	apiV1 := app.Group("api/v1")
+	apiV1.Post("user", userHandler.HandlePostUser)
 	apiV1.Get("/user", userHandler.HandleGetUsers)
+	apiV1.Put("user/:id", userHandler.HandlePutUser)
 	apiV1.Get("/user/:id", userHandler.HandleGetUser)
+	apiV1.Delete("/user/:id", userHandler.HandleDeleteUser)
 	err = app.Listen(*listenAddr)
 	if err != nil {
 		return
 	}
-}
-func handleFoo(c *fiber.Ctx) error {
-	return c.JSON(map[string]string{"msg": "Working just find"})
-}
-func handleUser(c *fiber.Ctx) error {
-	return c.JSON(map[string]string{"me": "Ndeta"})
 }
