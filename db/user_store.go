@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"github.com/Ndeta100/CamHotelConnect/types"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -10,7 +11,11 @@ import (
 
 const userColl = "users"
 
+type Dropper interface {
+	Drop(ctx context.Context) error
+}
 type UserStore interface {
+	Dropper
 	GetUserByID(ctx context.Context, s string) (*types.User, error)
 	GetUsers(ctx context.Context) ([]*types.User, error)
 	InsertUser(ctx context.Context, user *types.User) (*types.User, error)
@@ -30,6 +35,11 @@ func NewMongoUserStore(client *mongo.Client) *MongoUserStore {
 		coll:   coll,
 	}
 
+}
+
+func (s *MongoUserStore) Drop(ctx context.Context) error {
+	fmt.Println("-----dropping user collection-----")
+	return s.coll.Drop(ctx)
 }
 
 func (s *MongoUserStore) InsertUser(ctx context.Context, user *types.User) (*types.User, error) {
