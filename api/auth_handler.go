@@ -4,14 +4,22 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Ndeta100/CamHotelConnect/db"
+	"github.com/Ndeta100/CamHotelConnect/types"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/crypto/bcrypt"
+	"os"
+	"time"
 )
 
 type AuthParams struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type AuthResponse struct {
+	User  *types.User `json:"user"`
+	Token string      `json:"token"`
 }
 
 type AuthHandler struct {
@@ -24,6 +32,12 @@ func NewAuthHandler(userStore db.UserStore) *AuthHandler {
 	}
 }
 
+// HandleAuth ----------------------GENERAL OVERVIEW
+// HandleAuth Handler should only do:
+//   - Serialization of the incoming request(JSON)
+//    - do some data fetching from db
+//    - call some business logic
+//    - return data back to user
 func (h *AuthHandler) HandleAuth(c *fiber.Ctx) error {
 	var authParams AuthParams
 	if err := c.BodyParser(&authParams); err != nil {
@@ -36,10 +50,29 @@ func (h *AuthHandler) HandleAuth(c *fiber.Ctx) error {
 		}
 		return err
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(user.EncryptedPassword), []byte(authParams.Password))
-	if err != nil {
+	if !types.IsValidPassword(user.EncryptedPassword, authParams.Password) {
 		return fmt.Errorf("invalid credentials")
 	}
-	fmt.Println("Logged inn as", user.FirstName)
-	return nil
+	resp := AuthResponse{
+		User:  user,
+		Token: createTokenFromUser(user),
+	}
+	return c.JSON(resp)
+}
+
+func createTokenFromUser(user *types.User) string {
+	now := time.Now()
+	expires := now.Add(time.Hour * 4).Unix()
+	claims := jwt.MapClaims{
+		"id":      user.ID,
+		"email":   user.Email,
+		"expires": expires,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	secret := os.Getenv("JWT_SECRET")
+	tokenStr, err := token.SignedString([]byte(secret))
+	if err != nil {
+		fmt.Println("failed to sign token with secret", err)
+	}
+	return tokenStr
 }
