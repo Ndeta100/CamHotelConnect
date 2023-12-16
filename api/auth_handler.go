@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/mongo"
+	"net/http"
 	"os"
 	"time"
 )
@@ -26,10 +27,22 @@ type AuthHandler struct {
 	userStore db.UserStore
 }
 
+type GenericResp struct {
+	Type string `json:"type"`
+	Msg  string `json:"msg"`
+}
+
 func NewAuthHandler(userStore db.UserStore) *AuthHandler {
 	return &AuthHandler{
 		userStore: userStore,
 	}
+}
+
+func invalidCredentials(c *fiber.Ctx) error {
+	return c.Status(http.StatusBadRequest).JSON(GenericResp{
+		Type: "error",
+		Msg:  "Invalid credentials",
+	})
 }
 
 // HandleAuth ----------------------GENERAL OVERVIEW
@@ -46,12 +59,13 @@ func (h *AuthHandler) HandleAuth(c *fiber.Ctx) error {
 	user, err := h.userStore.GetUserByEmail(c.Context(), authParams.Email)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return fmt.Errorf("invalid credentials")
+			return invalidCredentials(c)
 		}
-		return err
+
 	}
 	if !types.IsValidPassword(user.EncryptedPassword, authParams.Password) {
-		return fmt.Errorf("invalid credentials")
+		return invalidCredentials(c)
+
 	}
 	resp := AuthResponse{
 		User:  user,
