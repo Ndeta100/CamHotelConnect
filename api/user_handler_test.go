@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"log"
 	"net/http/httptest"
@@ -38,7 +39,7 @@ func setup(t *testing.T) *testdb {
 		log.Fatal(err)
 	}
 	return &testdb{
-		UserStore: db.NewMongoUserStore(client, dbname),
+		UserStore: db.NewMongoUserStore(client),
 	}
 }
 
@@ -63,8 +64,11 @@ func TestPostUser(t *testing.T) {
 		t.Error(err)
 	}
 	var user types.User
-	json.NewDecoder(resp.Body).Decode(&user)
-	if len(user.ID) == 0 {
+	err = json.NewDecoder(resp.Body).Decode(&user)
+	if err != nil {
+		return
+	}
+	if user.ID == primitive.NilObjectID {
 		t.Errorf("expecting a user id")
 	}
 	if len(user.EncryptedPassword) > 0 {
