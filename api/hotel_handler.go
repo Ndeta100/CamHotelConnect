@@ -12,6 +12,12 @@ type HotelHandler struct {
 	store *db.Store
 }
 
+type ResourceResp struct {
+	Results int `json:"results"`
+	Data    any `json:"data"`
+	Page    int `json:"page"`
+}
+
 func NewHotelHandler(store *db.Store) *HotelHandler {
 	return &HotelHandler{
 		store: store,
@@ -19,23 +25,35 @@ func NewHotelHandler(store *db.Store) *HotelHandler {
 }
 
 func (h *HotelHandler) HandleGetHotels(c *fiber.Ctx) error {
-	hotels, err := h.store.Hotel.GetHotels(c.Context(), nil)
-	if err != nil {
-		return err
+	var queryFilter db.HotelFilter
+	if err := c.QueryParser(&queryFilter); err != nil {
+		return ErrBadRequest()
 	}
-	return c.JSON(hotels)
+	filter := bson.M{
+		"rating": queryFilter.Rating,
+	}
+	hotels, err := h.store.Hotel.GetHotels(c.Context(), filter, &queryFilter)
+	if err != nil {
+		return ErrResourceNotFound("hotels")
+	}
+	resp := ResourceResp{
+		Data:    hotels,
+		Results: len(hotels),
+		Page:    int(queryFilter.Page),
+	}
+	return c.JSON(resp)
 }
 
 func (h *HotelHandler) HandleGetRooms(c *fiber.Ctx) error {
 	id := c.Params("id")
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return ErrInvalidId()
 	}
 	filter := bson.M{"hotelID": oid}
 	rooms, err := h.store.Room.GetRooms(c.Context(), filter)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("hotel")
 	}
 	return c.JSON(rooms)
 }
@@ -45,7 +63,7 @@ func (h *HotelHandler) HandleGetHotel(c *fiber.Ctx) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	hotel, err := h.store.Hotel.GetHotelByID(c.Context(), oid)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("hotel")
 	}
 	return c.JSON(hotel)
 }
