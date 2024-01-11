@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"os"
 )
 
 const userColl = "users"
@@ -14,8 +15,15 @@ const userColl = "users"
 type Dropper interface {
 	Drop(ctx context.Context) error
 }
+
+// AuthStore This field are for user auth
+type AuthStore interface {
+	GetUserByEmail(ctx context.Context, email string) (*types.User, error)
+}
+
 type UserStore interface {
 	Dropper
+	AuthStore
 	GetUserByID(ctx context.Context, s string) (*types.User, error)
 	GetUsers(ctx context.Context) ([]*types.User, error)
 	InsertUser(ctx context.Context, user *types.User) (*types.User, error)
@@ -29,7 +37,8 @@ type MongoUserStore struct {
 }
 
 func NewMongoUserStore(client *mongo.Client) *MongoUserStore {
-	coll := client.Database(DBNAME).Collection(userColl)
+	dbname := os.Getenv("MONGO_DB_NAME")
+	coll := client.Database(dbname).Collection(userColl)
 	return &MongoUserStore{
 		client: client,
 		coll:   coll,
@@ -68,10 +77,13 @@ func (s *MongoUserStore) DeleteUser(ctx context.Context, id string) error {
 }
 
 func (s *MongoUserStore) UpdateUser(ctx context.Context, filter bson.M, params types.UpdateUserParams) error {
-	update := bson.D{
-		{
-			"$set", params.ToBSON(),
-		},
+	//update := bson.D{
+	//	{
+	//		"$set", params.ToBSON(),
+	//	},
+	//}
+	update := bson.M{
+		"$set": params,
 	}
 	_, err := s.coll.UpdateOne(ctx, filter, update)
 	if err != nil {
@@ -100,6 +112,14 @@ func (s *MongoUserStore) GetUserByID(ctx context.Context, id string) (*types.Use
 	}
 	var user types.User
 	if err := s.coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&user); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (s *MongoUserStore) GetUserByEmail(ctx context.Context, email string) (*types.User, error) {
+	var user types.User
+	if err := s.coll.FindOne(ctx, bson.M{"email": email}).Decode(&user); err != nil {
 		return nil, err
 	}
 	return &user, nil

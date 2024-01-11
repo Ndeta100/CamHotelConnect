@@ -3,15 +3,12 @@ package api
 import (
 	"context"
 	"github.com/Ndeta100/CamHotelConnect/db"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"os"
 	"testing"
-)
-
-const (
-	testdbname   = "hotel-reservation-test"
-	testmongouri = "mongodb://localhost:27017"
 )
 
 type testdb struct {
@@ -20,13 +17,15 @@ type testdb struct {
 }
 
 func (tdb testdb) teardown(t *testing.T) {
-	if err := tdb.client.Database(db.DBNAME).Drop(context.TODO()); err != nil {
+	dbname := os.Getenv("MONGO_DB_NAME")
+	if err := tdb.client.Database(dbname).Drop(context.TODO()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func setup(t *testing.T) *testdb {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(testmongouri))
+	dburi := os.Getenv("MONGO_DB_URL_TEST")
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(dburi))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,5 +38,11 @@ func setup(t *testing.T) *testdb {
 			Booking: db.NewMongoBookingStore(client),
 			Hotel:   hotelStore,
 		},
+	}
+}
+
+func init() {
+	if err := godotenv.Load("../.env"); err != nil {
+		log.Fatal(err)
 	}
 }

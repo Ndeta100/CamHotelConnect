@@ -6,19 +6,27 @@ import (
 	"github.com/Ndeta100/CamHotelConnect/api"
 	"github.com/Ndeta100/CamHotelConnect/db"
 	"github.com/Ndeta100/CamHotelConnect/db/fixtures"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"math/rand"
+	"os"
 	"time"
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal(err)
+	}
+	mongo_uri := os.Getenv("MONGO_DB_URL")
+	dbname := os.Getenv("MONGO_DB_NAME")
 	ctx := context.Background()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(db.DBURI))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongo_uri))
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := client.Database(db.DBNAME).Drop(ctx); err != nil {
+	if err := client.Database(dbname).Drop(ctx); err != nil {
 		log.Fatal(err)
 	}
 	hotelStore := db.NewMongoHotelStore(client)
@@ -36,5 +44,9 @@ func main() {
 	room := fixtures.AddRoom(&store, "large", true, 65.4, hotel.ID)
 	booking := fixtures.AddBooking(store, user.ID, room.ID, time.Now(), time.Now().AddDate(0, 0, 5))
 	fmt.Println("BOOKING-------->", booking.ID)
-
+	for i := 0; i < 100; i++ {
+		name := fmt.Sprintf("random hotel %d", i)
+		location := fmt.Sprintf("location %d", i)
+		fixtures.AddHotel(&store, name, location, rand.Intn(5)+1, nil)
+	}
 }
