@@ -1,13 +1,21 @@
 build:
-	@go build -o bin/api
+	@go build -o hotel/api
 
 run:build
-	@./bin/api
+	@./hotel/api
 
 test:
 	@go test -v ./...
 
+seed:
+	@go run scripts/seed.go
+
 clean:
 	@echo "Cleaning..."
 	@go clean
-	@rm -f /bin/api
+	@rm -rf ./hotel
+docker:
+	echo "building docker file"
+	@docker build -t api .
+	echo "running API inside Docker container"
+	@docker run -p 3000:3000 api
