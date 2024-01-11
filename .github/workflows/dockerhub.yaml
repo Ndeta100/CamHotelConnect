@@ -17,3 +17,5 @@ jobs:
           context: .
           push: true
           tags: ndeta100/hotel-api:${{ github.run_number }}
+      - name: Clean up
+        run: docker rmi ndeta100/hotel-api:${{ github.run_number -1}}
