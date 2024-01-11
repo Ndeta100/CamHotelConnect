@@ -23,7 +23,7 @@ func NewUserHandler(userStore db.UserStore) *UserHandler {
 func (h *UserHandler) HandlePostUser(c *fiber.Ctx) error {
 	var params types.CreateUserParams
 	if err := c.BodyParser(&params); err != nil {
-		return err
+		return ErrBadRequest()
 	}
 	if errorS := params.Validate(); len(errorS) > 0 {
 		return c.JSON(errorS)
@@ -45,7 +45,7 @@ func (h *UserHandler) HandlePutUser(c *fiber.Ctx) error {
 	userID := c.Params("id")
 	oid, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		return err
+		return ErrInvalidId()
 	}
 	if err := c.BodyParser(&params); err != nil {
 		return err
@@ -80,7 +80,7 @@ func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 func (h *UserHandler) HandleGetUsers(c *fiber.Ctx) error {
 	users, err := h.userStore.GetUsers(c.Context())
 	if err != nil {
-		return err
+		return ErrResourceNotFound("user")
 	}
 	return c.JSON(users)
 }
