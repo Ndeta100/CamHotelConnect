@@ -45,3 +45,12 @@ This project is a backend JSON API for a hotel reservation system. It's built us
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/Ndeta100/CamHotelConnect.git
+   
+### project env variables
+```
+   HTTP_LISTEN_ADDRESS=:3000
+   JWT_SECRET=somthing_supersecret_No_bodyknows
+   MONGO_DB_URL=mongodb://localhost:27017
+   MONGO_DB_NAME=hotel-reservation
+   MONGO_DB_URL_TEST=mongodb://localhost:27017
+```
