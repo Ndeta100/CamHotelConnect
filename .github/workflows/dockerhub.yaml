@@ -18,7 +18,8 @@ jobs:
         with:
           context: .
           push: true
-          tags: ndeta100/hotel-api:latest
+          tags: |
+                ndeta100/hotel-api:latest
                 ndeta100/hotel-api:${{ github.sha }}
 
       - name: Delete old containers
