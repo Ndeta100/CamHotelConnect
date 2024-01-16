@@ -31,4 +31,4 @@ jobs:
           org-name: ndeta100
           keep-at-least: 3
           skip-tags: latest, v*
-          token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          token: ${{ secrets.GH_PACKAGES_SECRET }}
