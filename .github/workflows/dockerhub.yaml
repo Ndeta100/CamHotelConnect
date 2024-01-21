@@ -21,14 +21,3 @@ jobs:
           tags: |
                 ndeta100/hotel-api:latest
                 ndeta100/hotel-api:${{ github.sha }}
-
-      - name: Delete old containers
-        uses: snok/container-retention-policy@v2.0.0
-        with:
-          image-names: "ndeta100/hotel-api"
-          cut-off: A week ago UTC
-          account-type: org
-          org-name: ndeta100
-          keep-at-least: 3
-          skip-tags: latest, v*
-          token: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}

@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hotel-api-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hotel-api
+  template:
+    metadata:
+      labels:
+        app: hotel-api
+    spec:
+      containers:
+        - name: hotel-api-container
+          image: docker.io/ndeta100/hotel-api:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: hotel-api-secrets
+                  key: DB_URL
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: hotel-api-secrets
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hotel-api-secrets
+                  key: DB_PASSWORD
