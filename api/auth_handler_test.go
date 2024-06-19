@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Ndeta100/CamHotelConnect/db/fixtures"
+	"github.com/Ndeta100/CamHotelConnect/types"
 	"github.com/gofiber/fiber/v2"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +17,7 @@ func TestAuthenticateSuccess(t *testing.T) {
 	tdb := setup(t)
 	defer tdb.teardown(t)
 	//insertedUser := insertTestUser(t, tdb.store.User)
-	insertedUser := fixtures.AddUser(*tdb.store, "james", "foo", false)
+	insertedUser := fixtures.AddUser(*tdb.store, "james", "foo", types.UserRoleAdmin)
 	app := fiber.New()
 	authHandler := NewAuthHandler(tdb.store.User)
 	app.Post("/auth", authHandler.HandleAuth)
@@ -55,7 +56,7 @@ func TestAuthenticateSuccess(t *testing.T) {
 func TestAuthenticateWithWrongPassword(t *testing.T) {
 	tdb := setup(t)
 	defer tdb.teardown(t)
-	wrongPassword := fixtures.AddUser(*tdb.store, "james", "foo", false)
+	wrongPassword := fixtures.AddUser(*tdb.store, "james", "foo", types.UserRoleUser)
 	app := fiber.New()
 	authHandler := NewAuthHandler(tdb.store.User)
 	app.Post("/auth", authHandler.HandleAuth)

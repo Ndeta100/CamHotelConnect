@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -54,22 +55,36 @@ func invalidCredentials(c *fiber.Ctx) error {
 func (h *AuthHandler) HandleAuth(c *fiber.Ctx) error {
 	var authParams AuthParams
 	if err := c.BodyParser(&authParams); err != nil {
+		log.Printf("Failed to parse request body: %v", err)
 		return err
 	}
+	log.Printf("Received login request for email: %s", authParams.Email)
 	user, err := h.userStore.GetUserByEmail(c.Context(), authParams.Email)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
+			log.Printf("Invalid login attempt: email not found %s", authParams.Email)
 			return invalidCredentials(c)
 		}
 
 	}
 	if !types.IsValidPassword(user.EncryptedPassword, authParams.Password) {
+		log.Printf("Invalid login attempt:Passwords do not match %s", authParams.Password)
 		return invalidCredentials(c)
 
 	}
+	token := CreateTokenFromUser(user)
+	// Set the cookie
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    token,
+		Expires:  time.Now().Add(4 * time.Hour),
+		HTTPOnly: true,
+		Secure:   false, // Set to true in production
+		SameSite: "Strict",
+	})
 	resp := AuthResponse{
 		User:  user,
-		Token: CreateTokenFromUser(user),
+		Token: token,
 	}
 	return c.JSON(resp)
 }
@@ -89,4 +104,33 @@ func CreateTokenFromUser(user *types.User) string {
 		fmt.Println("failed to sign token with secret", err)
 	}
 	return tokenStr
+}
+
+// Add this function to handle the validate_token endpoint
+func (h *AuthHandler) HandleValidateToken(c *fiber.Ctx) error {
+	tokenStr := c.Cookies("access_token") // Assuming the token is sent in a cookie
+	if tokenStr == "" {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"error": "No token provided",
+		})
+	}
+
+	claims, err := validateToken(tokenStr)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Invalid token",
+		})
+	}
+	// If the token is valid, optionally return user details or just a success message
+	userID := claims["id"].(string)
+	user, err := h.userStore.GetUserByID(c.Context(), userID)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User not found",
+		})
+	}
+	return c.JSON(fiber.Map{
+		"user":    user,
+		"message": "Token is valid",
+	})
 }
