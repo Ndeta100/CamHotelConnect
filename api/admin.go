@@ -10,7 +10,7 @@ func AdminAuth(c *fiber.Ctx) error {
 	if !ok {
 		return ErrUnauthorized()
 	}
-	if !user.IsAdmin {
+	if user.Role != types.UserRoleAdmin {
 		return ErrUnauthorized()
 	}
 	return c.Next()
