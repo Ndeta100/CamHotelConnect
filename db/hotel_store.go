@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"github.com/Ndeta100/CamHotelConnect/types"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -31,6 +32,13 @@ func NewMongoHotelStore(client *mongo.Client) *MongoHotelStore {
 }
 
 func (s *MongoHotelStore) InsertHotel(ctx context.Context, hotel *types.Hotel) (*types.Hotel, error) {
+	exist, err := s.HotelExists(ctx, hotel)
+	if err != nil {
+		return nil, err
+	}
+	if exist {
+		return nil, fmt.Errorf("hotel already exists")
+	}
 	resp, err := s.coll.InsertOne(ctx, hotel)
 	if err != nil {
 		return nil, err
@@ -69,4 +77,16 @@ func (s *MongoHotelStore) GetHotelByID(ctx context.Context, id primitive.ObjectI
 		return nil, err
 	}
 	return &hotel, nil
+}
+
+func (s *MongoHotelStore) HotelExists(ctx context.Context, hotel *types.Hotel) (bool, error) {
+	filter := bson.M{"$or": []bson.M{
+		{"name": hotel.Name, "location": hotel.Location},
+	}}
+	count, err := s.coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return false, err
+	}
+	log.Println("Hotel exists:", count)
+	return count > 0, nil
 }
