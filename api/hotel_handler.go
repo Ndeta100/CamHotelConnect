@@ -127,7 +127,7 @@ func (h *HotelHandler) HandleAddHotel(c *fiber.Ctx) error {
 		})
 	}
 	hotel.Images = imageUrls
-
+	log.Println("Imageurl:", imageUrls)
 	if err := c.BodyParser(&hotel); err != nil {
 		log.Printf("Failed to parse hotel data: %v", err)
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
@@ -137,6 +137,11 @@ func (h *HotelHandler) HandleAddHotel(c *fiber.Ctx) error {
 
 	insertedHotel, err := h.store.Hotel.InsertHotel(c.Context(), &hotel)
 	if err != nil {
+		if err.Error() == "hotel already exists" {
+			return c.Status(http.StatusConflict).JSON(fiber.Map{
+				"error": "hotel already exist",
+			})
+		}
 		log.Printf("Failed to insert hotel: %v", err)
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to create hotel",
