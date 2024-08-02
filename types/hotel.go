@@ -10,7 +10,7 @@ type Hotel struct {
 	Amenities   []string             `bson:"amenities" json:"amenities"`
 	Rooms       []primitive.ObjectID `bson:"rooms" json:"rooms"`
 	Rating      int                  `bson:"rating" json:"rating"`
-	Images      []Image              `bson:"images" json:"images"`
+	Images      []string             `bson:"images" json:"images"`
 }
 
 type Room struct {
@@ -19,6 +19,7 @@ type Room struct {
 	//small, normal or kingSize
 	Size    string             `bson:"size" json:"size"`
 	Price   float64            `bson:"price" json:"price"`
+	Images  []string           `bson:"images" json:"images"`
 	HotelID primitive.ObjectID ` bson:"hotelID" json:"hotelID"`
 }
 

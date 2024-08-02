@@ -4,7 +4,9 @@ import (
 	"context"
 	"github.com/Ndeta100/CamHotelConnect/api"
 	"github.com/Ndeta100/CamHotelConnect/db"
+	"github.com/Ndeta100/CamHotelConnect/utils"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,8 +26,19 @@ var config = fiber.Config{
 }
 
 func main() {
-	mongo_uri := os.Getenv("MONGO_DB_URL")
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongo_uri))
+	mongoUri := os.Getenv("MONGO_DB_URL")
+	cloudName := os.Getenv("CLOUDINARY_CLOUD_NAME")
+	cloudKey := os.Getenv("CLOUDINARY_API_KEY")
+	cloudSecret := os.Getenv("CLOUDINARY_API_SECRET")
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoUri))
+	if mongoUri == "" || cloudName == "" || cloudKey == "" || cloudSecret == "" {
+		log.Fatal("Error loading environment variables")
+	}
+
+	imageUploader, err := utils.NewCloudinaryUploader(cloudName, cloudKey, cloudSecret)
+	if err != nil {
+		log.Fatalf("error initialing cloudinary uploader %v", err)
+	}
 	//handlers initialization
 	var (
 		hotelStore   = db.NewMongoHotelStore(client)
@@ -39,29 +52,41 @@ func main() {
 			Booking: bookingStore,
 		}
 		userHandler    = api.NewUserHandler(userStore)
-		hotelHandler   = api.NewHotelHandler(store)
+		hotelHandler   = api.NewHotelHandler(store, imageUploader)
 		authHandler    = api.NewAuthHandler(userStore)
 		roomHandler    = api.NewRoomHandler(store)
 		bookingHandler = api.NewBookingHandler(store)
 		app            = fiber.New(config)
 		auth           = app.Group("/api")
-		apiV1          = app.Group("api/v1", api.JWTAuthentication(userStore))
+		apiV1          = app.Group("api/v1")
 		admin          = apiV1.Group("/admin", api.AdminAuth)
 	)
-
-	//auth handle
+	// Use CORS middleware
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000", // Change this to restrict to specific origins
+		AllowMethods:     "GET,POST,PUT,DELETE",
+		AllowHeaders:     "Content-Type, X-Api-Token",
+		AllowCredentials: true,
+	}))
+	// Define unauthenticated routes
 	auth.Post("/auth", authHandler.HandleAuth)
+	apiV1.Post("/user", userHandler.HandlePostUser)
+	//Hotel public routes
+	apiV1.Get("/hotel", hotelHandler.HandleGetHotels)
+	apiV1.Get("/hotel/:id", hotelHandler.HandleGetHotel)
+	apiV1.Get("hotel/:id/rooms", hotelHandler.HandleGetRooms)
+
+	// Use the JWT authentication middleware
+	apiV1.Use(api.JWTAuthentication(userStore))
+
 	//Versioned api routes
 	//User handlers
-	apiV1.Post("user", userHandler.HandlePostUser)
 	apiV1.Get("/user", userHandler.HandleGetUsers)
 	apiV1.Put("user/:id", userHandler.HandlePutUser)
 	apiV1.Get("/user/:id", userHandler.HandleGetUser)
 	apiV1.Delete("/user/:id", userHandler.HandleDeleteUser)
 	//Hotel handlers
-	apiV1.Get("/hotel", hotelHandler.HandleGetHotels)
-	apiV1.Get("/hotel/:id", hotelHandler.HandleGetHotel)
-	apiV1.Get("hotel/:id/rooms", hotelHandler.HandleGetRooms)
+	apiV1.Post("/hotel", hotelHandler.HandleAddHotel)
 
 	//room handlers
 	apiV1.Get("/room", roomHandler.HandleGetRooms)
