@@ -8,5 +8,5 @@ spec:
   ports:
     - protocol: TCP
       port: 3000 # The port through which your application will be exposed externally
-      targetPort: 3000 # The port your Spring Boot application listens on inside the container
+      targetPort: 5000 # The port your application listens on inside the container
   type: LoadBalancer

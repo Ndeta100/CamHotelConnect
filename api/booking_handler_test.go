@@ -15,7 +15,7 @@ import (
 func TestAdminGetBooking(t *testing.T) {
 	db := setup(t)
 	defer db.teardown(t)
-	user := fixtures.AddUser(*db.store, "james", "foo", false)
+	user := fixtures.AddUser(*db.store, "james", "foo", types.UserRoleUser)
 	hotel := fixtures.AddHotel(db.store, "bar hotel", "arizona", 4, nil)
 	room := fixtures.AddRoom(db.store, "small", true, 4.4, hotel.ID)
 	from := time.Now()
@@ -26,7 +26,7 @@ func TestAdminGetBooking(t *testing.T) {
 	bookingHandler := NewBookingHandler(db.store)
 	admin.Get("/", bookingHandler.HandleGetBookings)
 	req := httptest.NewRequest("GET", "/", nil)
-	adminUser := fixtures.AddUser(*db.store, "admin", "admin", true)
+	adminUser := fixtures.AddUser(*db.store, "admin", "admin", types.UserRoleAdmin)
 	req.Header.Add("X-Api-Token", CreateTokenFromUser(adminUser))
 	resp, err := app.Test(req)
 	if err != nil {

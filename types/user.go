@@ -38,13 +38,21 @@ type CreateUserParams struct {
 	Password  string `json:"password"`
 }
 
+type UserRole string
+
+const (
+	UserRoleUser       UserRole = "USER"
+	UserRoleAdmin      UserRole = "ADMIN"
+	UserRoleSuperAdmin UserRole = "SUPER_ADMIN"
+)
+
 type User struct {
 	ID                primitive.ObjectID `bson:"_id,omitempty" json:"id,omitempty"`
 	FirstName         string             `bson:"firstName" json:"firstName"`
 	LastName          string             `bson:"lastName" json:"lastName"`
 	Email             string             `bson:"email" json:"email"`
 	EncryptedPassword string             `bson:"EncryptedPassword" json:"-"`
-	IsAdmin           bool               `bson:"isAdmin" json:"isAdmin"`
+	Role              UserRole           `bson:"role" json:"role"`
 }
 
 func NewUserFromParams(params CreateUserParams) (*User, error) {
@@ -57,6 +65,7 @@ func NewUserFromParams(params CreateUserParams) (*User, error) {
 		LastName:          params.LastName,
 		Email:             params.Email,
 		EncryptedPassword: string(encpw),
+		Role:              UserRoleUser,
 	}, nil
 }
 

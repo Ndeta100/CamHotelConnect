@@ -6,6 +6,7 @@ import (
 	"github.com/Ndeta100/CamHotelConnect/api"
 	"github.com/Ndeta100/CamHotelConnect/db"
 	"github.com/Ndeta100/CamHotelConnect/db/fixtures"
+	"github.com/Ndeta100/CamHotelConnect/types"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -36,8 +37,8 @@ func main() {
 		Room:    db.NewMongoRoomStore(client, hotelStore),
 		Hotel:   hotelStore,
 	}
-	user := fixtures.AddUser(store, "james", "foo", false)
-	admin := fixtures.AddUser(store, "ndeta", "inno", true)
+	user := fixtures.AddUser(store, "james", "foo", types.UserRoleUser)
+	admin := fixtures.AddUser(store, "ndeta", "inno", types.UserRoleUser)
 	fmt.Println("ADMIN-------->", api.CreateTokenFromUser(admin))
 	fmt.Println("USER-------->", api.CreateTokenFromUser(user))
 	hotel := fixtures.AddHotel(&store, "Hilton", "Buea", 4, nil)
