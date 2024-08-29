@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func AddUser(store db.Store, fname, lname string, admin bool) *types.User {
+func AddUser(store db.Store, fname, lname string, userRole types.UserRole) *types.User {
 	user, err := types.NewUserFromParams(
 		types.CreateUserParams{
 			Email:     fmt.Sprintf("%s@%s.com", fname, lname),
@@ -22,7 +22,7 @@ func AddUser(store db.Store, fname, lname string, admin bool) *types.User {
 	if err != nil {
 		log.Fatal(err)
 	}
-	user.IsAdmin = admin
+	user.Role = userRole
 	insertedUser, err := store.User.InsertUser(context.TODO(), user)
 	if err != nil {
 		log.Fatal(err)

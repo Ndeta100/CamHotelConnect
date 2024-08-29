@@ -5,6 +5,7 @@ import (
 	"github.com/Ndeta100/CamHotelConnect/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -25,6 +26,8 @@ func JWTAuthentication(userStore db.UserStore) fiber.Handler {
 		expires := int64(expiresFloat)
 		//check token expiration
 		if time.Now().Unix() > expires {
+			//Todo create refreshToken!
+			log.Println("Token expired")
 			return NewError(http.StatusUnauthorized, "Expired token")
 		}
 		userID := claims["id"].(string)
@@ -34,9 +37,11 @@ func JWTAuthentication(userStore db.UserStore) fiber.Handler {
 		}
 		//set authenticated user to the  context
 		c.Context().SetUserValue("user", user)
+		c.Locals("user", user)
 		return c.Next()
 	}
 }
+
 func validateToken(tokenStr string) (jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:

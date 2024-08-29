@@ -29,6 +29,8 @@ type UserStore interface {
 	InsertUser(ctx context.Context, user *types.User) (*types.User, error)
 	DeleteUser(ctx context.Context, s string) error
 	UpdateUser(ctx context.Context, filter bson.M, params types.UpdateUserParams) error
+	GetUserByEmail(ctx context.Context, email string) (*types.User, error)
+	UserExists(ctx context.Context, user *types.User) (bool, error)
 }
 
 type MongoUserStore struct {
@@ -52,6 +54,13 @@ func (s *MongoUserStore) Drop(ctx context.Context) error {
 }
 
 func (s *MongoUserStore) InsertUser(ctx context.Context, user *types.User) (*types.User, error) {
+	exist, err := s.UserExists(ctx, user)
+	if err != nil {
+		return nil, err
+	}
+	if exist {
+		return nil, fmt.Errorf("user already exists")
+	}
 	res, err := s.coll.InsertOne(ctx, user)
 	if err != nil {
 		return nil, err
@@ -123,4 +132,13 @@ func (s *MongoUserStore) GetUserByEmail(ctx context.Context, email string) (*typ
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (s *MongoUserStore) UserExists(ctx context.Context, user *types.User) (bool, error) {
+	filter := bson.M{"email": user.Email}
+	count, err := s.coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

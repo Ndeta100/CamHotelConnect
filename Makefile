@@ -10,10 +10,14 @@ test:
 seed:
 	@go run scripts/seed.go
 
+drop:
+	@go run scripts/cleanDB.go
+
 clean:
 	@echo "Cleaning..."
 	@go clean
 	@rm -rf ./hotel
+
 docker:
 	echo "building docker file"
 	@docker build -t api .

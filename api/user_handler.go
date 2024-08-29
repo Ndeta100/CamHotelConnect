@@ -34,7 +34,10 @@ func (h *UserHandler) HandlePostUser(c *fiber.Ctx) error {
 	}
 	insertedUser, err := h.userStore.InsertUser(c.Context(), user)
 	if err != nil {
-		return err
+		if err.Error() == "user already exists" {
+			return c.Status(fiber.StatusConflict).JSON("User already exists")
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(err)
 	}
 	return c.JSON(insertedUser)
 }
@@ -83,4 +86,19 @@ func (h *UserHandler) HandleGetUsers(c *fiber.Ctx) error {
 		return ErrResourceNotFound("user")
 	}
 	return c.JSON(users)
+}
+
+func (h *UserHandler) HandleGetUserByEmail(c *fiber.Ctx) error {
+	email := c.Query("email")
+	if email == "" {
+		return ErrBadRequest()
+	}
+	user, err := h.userStore.GetUserByEmail(c.Context(), email)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return c.JSON(map[string]string{"err": "not found"})
+		}
+		return err
+	}
+	return c.JSON(user)
 }
