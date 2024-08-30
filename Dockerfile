@@ -35,8 +35,8 @@ ENV CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
 ENV CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
 ENV CLOUDINARY_UPLOAD_FOLDER=${CLOUDINARY_UPLOAD_FOLDER}
 
-# Build the Go app
-RUN go build -o main .
+# Build the Go app with static linking
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
 
 # Step 2: Create a minimal image to run the built Go binary
 FROM alpine:latest
@@ -49,6 +49,9 @@ WORKDIR /app
 
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
+
+# Ensure the binary has execute permissions (usually this is not necessary, but let's add it for safety)
+RUN chmod +x ./main
 
 # Expose the application on port 5000
 EXPOSE 5000
