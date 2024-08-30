@@ -7,7 +7,6 @@ import (
 	"github.com/Ndeta100/CamHotelConnect/db"
 	"github.com/Ndeta100/CamHotelConnect/db/fixtures"
 	"github.com/Ndeta100/CamHotelConnect/types"
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -17,9 +16,9 @@ import (
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal(err)
-	}
+	//if err := godotenv.Load(); err != nil {
+	//	log.Fatal(err)
+	//}
 	mongo_uri := os.Getenv("MONGO_DB_URL")
 	dbname := os.Getenv("MONGO_DB_NAME")
 	ctx := context.Background()
