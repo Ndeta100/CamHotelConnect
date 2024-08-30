@@ -13,6 +13,9 @@ RUN go mod download
 # Copy the source code into the container
 COPY . .
 
+# Copy the .env file to the working directory
+COPY .env ../
+
 # Build the Go app with static linking
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
 
