@@ -7,7 +7,6 @@ import (
 	"github.com/Ndeta100/CamHotelConnect/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -105,7 +104,7 @@ func main() {
 }
 
 func init() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal(err)
-	}
+	//if err := godotenv.Load(); err != nil {
+	//	log.Fatal(err)
+	//}
 }
