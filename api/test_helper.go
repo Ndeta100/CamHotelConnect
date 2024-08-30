@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"github.com/Ndeta100/CamHotelConnect/db"
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -42,7 +41,7 @@ func setup(t *testing.T) *testdb {
 }
 
 func init() {
-	if err := godotenv.Load("../.env"); err != nil {
-		log.Fatal(err)
-	}
+	//if err := godotenv.Load("../.env"); err != nil {
+	//	log.Fatal(err)
+	//}
 }
