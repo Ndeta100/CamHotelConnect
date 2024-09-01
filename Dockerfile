@@ -28,11 +28,17 @@ WORKDIR /app
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
 
-# Ensure the binary has execute permissions (usually this is not necessary, but let's add it for safety)
-RUN chmod +x ./main
+# Copy the entrypoint script into the container
+COPY entrypoint.sh /app/entrypoint.sh
+
+# Ensure the binary and entrypoint script have execute permissions
+RUN chmod +x ./main /app/entrypoint.sh
 
 # Expose the application on port 5000
 EXPOSE 5000
+
+# Set the entrypoint to the shell script
+ENTRYPOINT ["/app/entrypoint.sh"]
 
 # Command to run the executable
 CMD ["./main"]
