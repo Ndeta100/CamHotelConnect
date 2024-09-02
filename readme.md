@@ -53,4 +53,8 @@ This project is a backend JSON API for a hotel reservation system. It's built us
    MONGO_DB_URL=mongodb://localhost:27017
    MONGO_DB_NAME=hotel-reservation
    MONGO_DB_URL_TEST=mongodb://localhost:27017
+   CLOUDINARY_API_KEY=
+   CLOUDINARY_API_SECRET=
+   CLOUDINARY_CLOUD_NAME=
+   CLOUDINARY_UPLOAD_FOLDER=
 ```
