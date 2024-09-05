@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/Ndeta100/CamHotelConnect/db"
 	"github.com/Ndeta100/CamHotelConnect/types"
 	"github.com/Ndeta100/CamHotelConnect/utils"
@@ -30,6 +31,21 @@ func NewHotelHandler(store *db.Store, imageUploader utils.ImageUploader) *HotelH
 	}
 }
 
+// HandleGetHotels TODO
+//
+//	@Summary		Get all hotels
+//	@Description	Get a list of all hotels with optional filtering and pagination.
+//	@Tags			hotels
+//	@Accept			json
+//	@Produce		json
+//	@Param			rating	query		int				false	"Filter hotels by rating"
+//	@Param			page	query		int				false	"Page number for pagination"	default(1)
+//	@Param			limit	query		int				false	"Number of hotels per page"		default(10)
+//	@Success		200		{object}	ResourceResp	"List of hotels retrieved successfully"
+//	@Failure		400		{object}	GenericResp		"Bad Request"
+//	@Failure		404		{object}	GenericResp		"Hotels not found"
+//	@Failure		500		{object}	GenericResp		"Internal Server Error"
+//	@Router			/hotels [get]
 func (h *HotelHandler) HandleGetHotels(c *fiber.Ctx) error {
 	var queryFilter db.HotelFilter
 	if err := c.QueryParser(&queryFilter); err != nil {
@@ -56,6 +72,18 @@ func (h *HotelHandler) HandleGetHotels(c *fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
+// HandleGetRooms TODO
+//
+//	@Summary		Get all rooms in a hotel
+//	@Description	Get a list of all rooms for a specific hotel.
+//	@Tags			hotels
+//	@Produce		json
+//	@Param			id	path		string		true	"Hotel ID"
+//	@Success		200	{array}		types.Room	"List of rooms retrieved successfully"
+//	@Failure		400	{object}	GenericResp	"Invalid Hotel ID"
+//	@Failure		404	{object}	GenericResp	"Hotel not found"
+//	@Failure		500	{object}	GenericResp	"Internal Server Error"
+//	@Router			/hotels/{id}/rooms [get]
 func (h *HotelHandler) HandleGetRooms(c *fiber.Ctx) error {
 	id := c.Params("id")
 	oid, err := primitive.ObjectIDFromHex(id)
@@ -70,20 +98,69 @@ func (h *HotelHandler) HandleGetRooms(c *fiber.Ctx) error {
 	return c.JSON(rooms)
 }
 
+// HandleGetHotel TODO:
+//
+//	@Summary		Get a specific hotel
+//	@Description	Get details of a specific hotel by its ID.
+//	@Tags			hotels
+//	@Produce		json
+//	@Param			id	path		string		true	"Hotel ID"
+//	@Success		200	{object}	types.Hotel	"Hotel details retrieved successfully"
+//	@Failure		400	{object}	GenericResp	"Invalid Hotel ID"
+//	@Failure		404	{object}	GenericResp	"Hotel not found"
+//	@Failure		500	{object}	GenericResp	"Internal Server Error"
+//	@Router			/hotels/{id} [get]
 func (h *HotelHandler) HandleGetHotel(c *fiber.Ctx) error {
 	id := c.Params("id")
-	oid, err := primitive.ObjectIDFromHex(id)
-	hotel, err := h.store.Hotel.GetHotelByID(c.Context(), oid)
+	hotelID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return ErrResourceNotFound("hotel")
+	}
+	userInterface := c.Locals("user")
+	fmt.Println("ID", userInterface)
+	user, ok := userInterface.(*types.User)
+	if !ok || user == nil {
+		fmt.Printf("Invalid user type or nil user in context: %v\n", userInterface)
+		return ErrUnauthorized()
+	}
+	if !userIsAdmin(user) {
+		return fmt.Errorf("user is not admin")
+	}
+	hotel, err := h.store.Hotel.GetHotelByID(c.Context(), user.ID, hotelID)
+	if err != nil {
+		//Check if hotel not found
+		if err.Error() == "hotel not found" {
+			//	TODO: This error occurs when user is trying to get a hotel they did not add
+			return c.Status(fiber.StatusConflict).JSON("hotel does not exists")
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(GenericResp{Msg: "Internal Server Error"})
+	}
+	// Check if the user is authorized (either the owner or an admin)
+	if hotel.UserId != user.ID {
+		return c.Status(fiber.StatusForbidden).JSON(GenericResp{Msg: "You do not have permission to access this resource"})
 	}
 	return c.JSON(hotel)
 }
 
 // HandleAddHotel CreateHotel handles the creation of a new hotel
+//
+//	@Summary		Add a new hotel
+//	@Description	Add a new hotel. Only users with the "ADMIN" role can create hotels.
+//	@Tags			hotels
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			user	body		types.Hotel	true	"Hotel data"
+//	@Param			images	formData	file		true	"Hotel images"
+//	@Success		201		{object}	types.Hotel	"Hotel created successfully"
+//	@Failure		400		{object}	GenericResp	"Bad Request"
+//	@Failure		401		{object}	GenericResp	"Unauthorized - Missing or invalid credentials"
+//	@Failure		403		{object}	GenericResp	"Forbidden - User does not have the required role"
+//	@Failure		409		{object}	GenericResp	"Conflict - Hotel already exists"
+//	@Failure		500		{object}	GenericResp	"Internal Server Error"
+//	@Router			/hotels [post]
 func (h *HotelHandler) HandleAddHotel(c *fiber.Ctx) error {
 	log.Println("Sending request to add hotel")
-	// Assuming you have a way to get the current authenticated user
+	//get the current authenticated user
 	user := c.Locals("user")
 	if user == nil {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
@@ -105,6 +182,10 @@ func (h *HotelHandler) HandleAddHotel(c *fiber.Ctx) error {
 		})
 	}
 	var hotel types.Hotel
+	if err := c.BodyParser(&hotel); err != nil {
+		log.Printf("Error parsing hotel json: %v\n", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"err": "Invalid input"})
+	}
 	//Get form data with images
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -112,11 +193,23 @@ func (h *HotelHandler) HandleAddHotel(c *fiber.Ctx) error {
 			"error": "failed to parse form",
 		})
 	}
+
 	//get image files from the form data
 	files := form.File["images"]
 	if len(files) == 0 {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
 			"error": "no files provided to upload",
+		})
+	}
+	exists, err := h.store.Hotel.HotelExists(c.Context(), &hotel)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to check if hotel exists",
+		})
+	}
+	if exists {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"error": "hotel already exists",
 		})
 	}
 	//upload image and get urls
@@ -135,7 +228,7 @@ func (h *HotelHandler) HandleAddHotel(c *fiber.Ctx) error {
 		})
 	}
 
-	insertedHotel, err := h.store.Hotel.InsertHotel(c.Context(), &hotel)
+	insertedHotel, err := h.store.Hotel.InsertHotel(c.Context(), currentUser.ID, &hotel)
 	if err != nil {
 		if err.Error() == "hotel already exists" {
 			return c.Status(http.StatusConflict).JSON(fiber.Map{
