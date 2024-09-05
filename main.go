@@ -4,9 +4,11 @@ import (
 	"context"
 	"github.com/Ndeta100/CamHotelConnect/api"
 	"github.com/Ndeta100/CamHotelConnect/db"
+	_ "github.com/Ndeta100/CamHotelConnect/docs"
 	"github.com/Ndeta100/CamHotelConnect/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/swagger"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -25,6 +27,12 @@ var config = fiber.Config{
 	ErrorHandler: api.ErrorHandler,
 }
 
+// @title			CAM HOTEL CONNECT
+// @version		0.0.1 beta
+// @description	This project is a backend JSON API for a hotel reservation system.
+// @contact.name	API Support
+// @contact.email	api.support.huz@mail.com
+// @license.name	Apache 2.0
 func main() {
 	mongoUri := os.Getenv("MONGO_DB_URL")
 	cloudName := os.Getenv("CLOUDINARY_CLOUD_NAME")
@@ -71,13 +79,15 @@ func main() {
 	// Define unauthenticated routes
 	auth.Post("/auth", authHandler.HandleAuth)
 	apiV1.Post("/user", userHandler.HandlePostUser)
+	//Swagger
+	app.Get("/swagger/*", swagger.HandlerDefault)
 	//Hotel public routes
 	apiV1.Get("/hotel", hotelHandler.HandleGetHotels)
-	apiV1.Get("/hotel/:id", hotelHandler.HandleGetHotel)
 	apiV1.Get("hotel/:id/rooms", hotelHandler.HandleGetRooms)
 
 	// Use the JWT authentication middleware
 	apiV1.Use(api.JWTAuthentication(userStore))
+	apiV1.Get("/hotel/:id", hotelHandler.HandleGetHotel)
 
 	//Versioned api routes
 	//User handlers

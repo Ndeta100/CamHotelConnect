@@ -36,6 +36,19 @@ func NewRoomHandler(store *db.Store) *RoomHandler {
 	}
 }
 
+// HandleBookRoom TODO:
+//
+//	@Summary		Book a room
+//	@Description	Book a room with the specified parameters. The room must be available.
+//	@Tags			rooms
+//	@Accept			json
+//	@Produce		json
+//	@Param			id		path		string			true	"Room ID"
+//	@Param			booking	body		BookRoomParams	true	"Booking parameters"
+//	@Success		200		{object}	types.Booking	"Room booked successfully"
+//	@Failure		400		{object}	GenericResp		"Bad Request - Room already booked or invalid parameters"
+//	@Failure		500		{object}	GenericResp		"Internal Server Error"
+//	@Router			/rooms/{id}/book [post]
 func (h *RoomHandler) HandleBookRoom(c *fiber.Ctx) error {
 	var params BookRoomParams
 	if err := c.BodyParser(&params); err != nil {
@@ -80,6 +93,15 @@ func (h *RoomHandler) HandleBookRoom(c *fiber.Ctx) error {
 	return c.JSON(inserted)
 }
 
+// HandleGetRooms TODO
+//
+//	@Summary		Get all rooms
+//	@Description	Get a list of all rooms available.
+//	@Tags			rooms
+//	@Produce		json
+//	@Success		200	{array}		types.Room	"List of rooms retrieved successfully"
+//	@Failure		500	{object}	GenericResp	"Internal Server Error"
+//	@Router			/rooms [get]
 func (h *RoomHandler) HandleGetRooms(c *fiber.Ctx) error {
 	rooms, err := h.store.Room.GetRooms(c.Context(), bson.M{})
 	if err != nil {

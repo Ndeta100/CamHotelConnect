@@ -45,9 +45,10 @@ func main() {
 	room := fixtures.AddRoom(&store, "large", true, 65.4, hotel.ID)
 	booking := fixtures.AddBooking(store, user.ID, room.ID, time.Now(), time.Now().AddDate(0, 0, 5))
 	fmt.Println("BOOKING-------->", booking.ID)
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("random hotel %d", i)
 		location := fmt.Sprintf("location %d", i)
+		hotel.UserId = user.ID
 		fixtures.AddHotel(&store, name, location, rand.Intn(5)+1, nil)
 	}
 }

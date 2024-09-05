@@ -7,6 +7,7 @@ import (
 	"github.com/Ndeta100/CamHotelConnect/types"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
 	"net/http"
@@ -49,9 +50,9 @@ func invalidCredentials(c *fiber.Ctx) error {
 // HandleAuth ----------------------GENERAL OVERVIEW
 // HandleAuth Handler should only do:
 //   - Serialization of the incoming request(JSON)
-//    - do some data fetching from db
-//    - call some business logic
-//    - return data back to user
+//   - do some data fetching from db
+//   - call some business logic
+//   - return data back to user
 func (h *AuthHandler) HandleAuth(c *fiber.Ctx) error {
 	var authParams AuthParams
 	if err := c.BodyParser(&authParams); err != nil {
@@ -123,7 +124,13 @@ func (h *AuthHandler) HandleValidateToken(c *fiber.Ctx) error {
 	}
 	// If the token is valid, optionally return user details or just a success message
 	userID := claims["id"].(string)
-	user, err := h.userStore.GetUserByID(c.Context(), userID)
+	// Convert userID to ObjectID
+	objectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		fmt.Println("Invalid user ID format in token:", userID)
+		return ErrUnauthorized()
+	}
+	user, err := h.userStore.GetUserByID(c.Context(), objectID)
 	if err != nil {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User not found",
