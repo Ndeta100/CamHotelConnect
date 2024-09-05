@@ -24,7 +24,7 @@ type AuthStore interface {
 type UserStore interface {
 	Dropper
 	AuthStore
-	GetUserByID(ctx context.Context, s string) (*types.User, error)
+	GetUserByID(ctx context.Context, s primitive.ObjectID) (*types.User, error)
 	GetUsers(ctx context.Context) ([]*types.User, error)
 	InsertUser(ctx context.Context, user *types.User) (*types.User, error)
 	DeleteUser(ctx context.Context, s string) error
@@ -113,14 +113,9 @@ func (s *MongoUserStore) GetUsers(ctx context.Context) ([]*types.User, error) {
 	return users, nil
 }
 
-func (s *MongoUserStore) GetUserByID(ctx context.Context, id string) (*types.User, error) {
-	//validate the id
-	oid, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
+func (s *MongoUserStore) GetUserByID(ctx context.Context, id primitive.ObjectID) (*types.User, error) {
 	var user types.User
-	if err := s.coll.FindOne(ctx, bson.M{"_id": oid}).Decode(&user); err != nil {
+	if err := s.coll.FindOne(ctx, bson.M{"_id": id}).Decode(&user); err != nil {
 		return nil, err
 	}
 	return &user, nil

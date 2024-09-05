@@ -11,6 +11,7 @@ type Hotel struct {
 	Rooms       []primitive.ObjectID `bson:"rooms" json:"rooms"`
 	Rating      int                  `bson:"rating" json:"rating"`
 	Images      []string             `bson:"images" json:"images"`
+	UserId      primitive.ObjectID   `bson:"user_id" json:"user_id"`
 }
 
 type Room struct {

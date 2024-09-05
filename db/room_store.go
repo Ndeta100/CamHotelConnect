@@ -6,7 +6,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
 	"os"
 )
 
@@ -41,9 +40,6 @@ func (s *MongoRoomStore) InsertRoom(ctx context.Context, room *types.Room) (*typ
 	update := bson.M{"$push": bson.M{"rooms": room.ID}}
 	if err := s.HotelStore.UpdateHotel(ctx, filter, update); err != nil {
 		return nil, err
-	}
-	if err != nil {
-		log.Fatal(err)
 	}
 	return room, nil
 }

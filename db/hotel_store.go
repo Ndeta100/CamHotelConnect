@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/Ndeta100/CamHotelConnect/types"
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,9 +15,11 @@ import (
 
 type HotelStore interface {
 	GetHotels(ctx context.Context, filter bson.M, options *HotelFilter) ([]*types.Hotel, error)
-	InsertHotel(ctx context.Context, hotel *types.Hotel) (*types.Hotel, error)
+	InsertHotel(ctx context.Context, userID primitive.ObjectID, hotel *types.Hotel) (*types.Hotel, error)
 	UpdateHotel(ctx context.Context, filter bson.M, update bson.M) error
-	GetHotelByID(ctx context.Context, id primitive.ObjectID) (*types.Hotel, error)
+	GetHotelByID(ctx context.Context, userID, hotelID primitive.ObjectID) (*types.Hotel, error)
+	DeleteHotelByID(ctx context.Context, id primitive.ObjectID) error
+	HotelExists(ctx context.Context, hotel *types.Hotel) (bool, error)
 }
 type MongoHotelStore struct {
 	client *mongo.Client
@@ -31,7 +34,7 @@ func NewMongoHotelStore(client *mongo.Client) *MongoHotelStore {
 	}
 }
 
-func (s *MongoHotelStore) InsertHotel(ctx context.Context, hotel *types.Hotel) (*types.Hotel, error) {
+func (s *MongoHotelStore) InsertHotel(ctx context.Context, userID primitive.ObjectID, hotel *types.Hotel) (*types.Hotel, error) {
 	exist, err := s.HotelExists(ctx, hotel)
 	if err != nil {
 		return nil, err
@@ -39,6 +42,8 @@ func (s *MongoHotelStore) InsertHotel(ctx context.Context, hotel *types.Hotel) (
 	if exist {
 		return nil, fmt.Errorf("hotel already exists")
 	}
+	//add the user to the hotel
+	hotel.UserId = userID
 	resp, err := s.coll.InsertOne(ctx, hotel)
 	if err != nil {
 		return nil, err
@@ -70,13 +75,32 @@ func (s *MongoHotelStore) GetHotels(ctx context.Context, filter bson.M, page *Ho
 	return hotels, nil
 }
 
-func (s *MongoHotelStore) GetHotelByID(ctx context.Context, id primitive.ObjectID) (*types.Hotel, error) {
+func (s *MongoHotelStore) GetHotelByID(ctx context.Context, userID, hotelID primitive.ObjectID) (*types.Hotel, error) {
 	var hotel types.Hotel
-	//validate the id
-	if err := s.coll.FindOne(ctx, bson.M{"_id": id}).Decode(&hotel); err != nil {
-		return nil, err
+	filter := bson.M{
+		"_id":     hotelID,
+		"user_id": userID,
+	}
+	//try finding hotel
+	err := s.coll.FindOne(ctx, filter).Decode(&hotel)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, fmt.Errorf("hotel not found")
+		}
+		return nil, fmt.Errorf("failed to find hotel")
 	}
 	return &hotel, nil
+}
+
+func (s *MongoHotelStore) DeleteHotelByID(ctx context.Context, id primitive.ObjectID) error {
+	res, err := s.coll.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return fmt.Errorf("failed to delete hotel with ID %v: %w", id, err)
+	}
+	if res.DeletedCount == 0 {
+		return fmt.Errorf(" hotel with ID %v does not exist", id)
+	}
+	return nil
 }
 
 func (s *MongoHotelStore) HotelExists(ctx context.Context, hotel *types.Hotel) (bool, error) {

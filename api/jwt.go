@@ -5,6 +5,7 @@ import (
 	"github.com/Ndeta100/CamHotelConnect/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
 	"os"
@@ -15,9 +16,10 @@ func JWTAuthentication(userStore db.UserStore) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		token, ok := c.GetReqHeaders()["X-Api-Token"]
 		if !ok {
-			fmt.Println("token not present in header")
+			fmt.Println("X-Api-Token not present in header")
 			return ErrUnauthorized()
 		}
+		fmt.Println("Token received:", token[0])
 		claims, err := validateToken(token[0])
 		if err != nil {
 			return err
@@ -26,17 +28,28 @@ func JWTAuthentication(userStore db.UserStore) fiber.Handler {
 		expires := int64(expiresFloat)
 		//check token expiration
 		if time.Now().Unix() > expires {
-			//Todo create refreshToken!
+			// TODO createRefreshToken
 			log.Println("Token expired")
 			return NewError(http.StatusUnauthorized, "Expired token")
 		}
 		userID := claims["id"].(string)
-		user, err := userStore.GetUserByID(c.Context(), userID)
+		// Convert userID to ObjectID if necessary
+		objectID, err := primitive.ObjectIDFromHex(userID)
+		if err != nil {
+			fmt.Println("Invalid user ID format in token:", objectID)
+			return ErrUnauthorized()
+		}
+		user, err := userStore.GetUserByID(c.Context(), objectID)
 		if err != nil {
 			return ErrUnauthorized()
 		}
+		// Ensure user is not nil
+		if user == nil {
+			fmt.Println("User not found in database")
+			return ErrUnauthorized()
+		}
 		//set authenticated user to the  context
-		c.Context().SetUserValue("user", user)
+		//c.Context().SetUserValue("user", user)
 		c.Locals("user", user)
 		return c.Next()
 	}
